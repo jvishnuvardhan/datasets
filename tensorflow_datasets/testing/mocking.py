@@ -332,11 +332,16 @@ class RandomFakeGenerator(object):
     root_feature = self._features
     flat_features = root_feature._flatten(root_feature)  # pylint: disable=protected-access
     flat_tensor_info = root_feature._flatten(root_feature.get_tensor_info())  # pylint: disable=protected-access
-    flat_np = [
-        self._generate_random_array(feature, tensor_info)
-        for feature, tensor_info in zip(flat_features, flat_tensor_info)
-    ]
-    return root_feature._nest(flat_np)  # pylint: disable=protected-access
+    flat_objs = []
+    for feature, tensor_info in zip(flat_features, flat_tensor_info):
+      if isinstance(tensor_info, dict):
+        generator = RandomFakeGenerator(
+            feature.feature, num_examples=self._num_examples)
+        rand_obj = generator._generate_example()  # pylint: disable=protected-access
+      else:
+        rand_obj = self._generate_random_array(feature, tensor_info)
+      flat_objs.append(rand_obj)
+    return root_feature._nest(flat_objs)  # pylint: disable=protected-access
 
   def __iter__(self):
     """Yields all fake examples."""

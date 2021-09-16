@@ -248,3 +248,40 @@ def test_mock_non_registered_datasets(
     builder = tfds.builder(ds_name)
     ds = builder.as_dataset(split='train')
     assert len(list(ds)) == 15
+
+
+def test_mocking_rlu_nested_dataset(mock_data):
+  """Test of a nested dataset.
+
+  In this test we use the dataset rlu_atari.
+  The dataset has the following features:
+
+    features=tfds.features.FeaturesDict({
+      'clipped_episode_return': tf.float32,
+      'episode_id': tf.int64,
+      'episode_return': tf.float32,
+      'steps': tfds.features.Dataset({
+          'action': tf.int64,
+          'clipped_reward': tf.float32,
+          'discount': tf.float32,
+          'is_first': tf.bool,
+          'is_last': tf.bool,
+          'is_terminal': tf.bool,
+          'observation': tfds.features.Image(shape=(84, 84, 1), dtype=tf.uint8),
+          'reward': tf.float32,
+      }),
+    })
+
+  Args:
+    mock_data: the stream of mock data points.
+  """
+  with mock_data(num_examples=3):
+    ds = tfds.load('rlu_atari/Pong_run_1', split='train')
+    for ex in ds.take(3):
+      assert set(ex.keys()) == set(
+          ['clipped_episode_return', 'episode_id', 'episode_return', 'steps'])
+      assert set(ex['steps'].keys()) == set([
+          'action', 'clipped_reward', 'discount', 'is_first', 'is_last',
+          'is_terminal', 'observation', 'reward'
+      ])
+      assert ex['steps']['observation'].shape == (84, 84, 1)
